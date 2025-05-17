@@ -19,7 +19,7 @@ mod svg_generator;
 use svg_generator::SvgGenerator;
 
 /// Template ID for orbital NFT
-const ORBITAL_TEMPLATE_ID: u128 = 0x5A169;
+const ORBITAL_INSTANCE_ID: u128 = 0x41a2;
 
 /// Name of the NFT collection
 const CONTRACT_NAME: &str = "Ador Alkane";
@@ -334,7 +334,7 @@ impl Collection {
         let cellpack: Cellpack = Cellpack {
             target: AlkaneId {
                 block: 6,
-                tx: ORBITAL_TEMPLATE_ID,
+                tx: ORBITAL_INSTANCE_ID,
             },
             inputs,
         };
@@ -505,8 +505,13 @@ impl Collection {
                     id: 1,
                     price_per_item: 100,
                     max_mints_per_address: 5,
-                    whitelist: vec!["0xABC...".to_string()],
-                    max_supply: 1000,
+                    whitelist: vec![
+                        "tb1pxfgth5u8dpvtwzcfkud87n9sfs56ypymc7gv0r2ydvp64clkdxzsmadr3t".to_string(),
+                        "tb1qnfvg3mxy46m6d5znqpxpy5fvy7nxw3p83ns7cg".to_string(),
+                        "tb1qla5u9e3rz2840rggsjaz54zk8yn48402khann9".to_string(),
+                        "tb1p3azhqgk06m3evczr9fxqxsfg62nahrtdgydh7pvh7nqt9t3cy3ys663xnw".to_string()
+                    ],
+                    max_supply: 100,
                     start_block: 900000,
                     end_block: 905000,
                     total_minted: 0,
