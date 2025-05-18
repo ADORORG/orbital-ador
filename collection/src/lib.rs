@@ -12,7 +12,6 @@ use alkanes_support::{
 };
 
 use serde::{Serialize, Deserialize};
-use bincode;
 use anyhow::{anyhow, Result};
 use std::sync::Arc;
 mod svg_generator;
@@ -58,7 +57,7 @@ enum CollectionMessage {
   AuthMintOrbital { count: u128 },
 
   #[opcode(77)]
-  MintInStage { stage_id: u128, address: String, count: u128 },
+  MintInStage { stage_id: u128 },
 
   #[opcode(99)]
   #[returns(String)]
@@ -90,11 +89,7 @@ enum CollectionMessage {
 
   #[opcode(1002)]
   #[returns(String)]
-  GetInstanceIdentifier { index: u128 },
-
-  #[opcode(1004)]
-  #[returns(Stage)]
-  GetSingleStage { stage_id: u128 },
+  GetInstanceIdentifier { index: u128 }
 }
 
 impl Token for Collection {
@@ -203,27 +198,9 @@ impl Collection {
         response.data = instance_str.into_bytes();
         Ok(response)
     }
-    /// Get all stages 
-    fn get_all_stages(&self) -> Result<CallResponse>{
-        let context: alkanes_support::context::Context = self.context()?;
-        let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes);
-
-        response.data = self.stages_to_bytes(self.get_mint_stages()?)?;
-
-        Ok(response)
-    }
-    /// Get a single stage
-    fn get_single_stage(&self, stage_id: u128) -> Result<CallResponse> {
-        let context: alkanes_support::context::Context = self.context()?;
-        let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes);
-
-        response.data = self.stages_to_bytes(vec![self.get_mint_stage(stage_id)?])?;
-
-        Ok(response)
-    }
-
+  
     /// Mint from a stage
-    fn mint_in_stage(&self, stage_id: u128, address: String, count: u128) -> Result<CallResponse> {
+    fn mint_in_stage(&self, stage_id: u128) -> Result<CallResponse> {
         // @todo - determine the minter address from context instead of receiving it as a parameter
         let mut stages: Vec<Stage> = self.get_mint_stages()?;
         // let mut stage: Stage = self.get_mint_stage(stage_id)?;
@@ -235,11 +212,7 @@ impl Collection {
             return Err(anyhow!("Stage is not active"));
         }
 
-        if !self.is_whitelisted(stage_id, address) {
-            return Err(anyhow!("Address not whitelisted"));
-        }
-
-        if stage.total_minted + count > stage.max_supply {
+        if stage.total_minted + 1 > stage.max_supply {
             return Err(anyhow!("Exceeds max supply for this stage"));
         }
 
@@ -248,7 +221,7 @@ impl Collection {
         // orbital due to block limit or whitelist
 
         // Increase total_minted for stage
-        stage.total_minted += count;
+        stage.total_minted += 1;
         // Update the stage
         self.set_mint_stages(stages)?;
         // Proceed with minting
@@ -464,17 +437,6 @@ impl Collection {
         
         Ok(stages)
     }
-    /// Retrieve a specific stage by ID
-    fn get_mint_stage(&self, stage_id: u128) -> Result<Stage> {
-        let stages: Vec<Stage> = self.get_mint_stages()?;     
-        for stage in stages {
-            if stage.id == stage_id {
-                return Ok(stage);
-            }
-        }
-
-        Err(anyhow!("Stage with ID {} not found", stage_id))
-    }
     /// Initialize stages if not already set
     fn initialize_mint_stages(&self) -> Result<()> {
         let stages: Vec<Stage> = self.get_mint_stages()?;
@@ -536,15 +498,6 @@ impl Collection {
         }
 
         Ok(())
-    }
-
-    fn is_whitelisted(&self, stage_id: u128, address: String) -> bool {
-        self.get_mint_stage(stage_id)
-            .map_or(false, |stage| stage.whitelist.is_empty() || stage.whitelist.contains(&address.to_string()))
-    }
-
-    fn stages_to_bytes(&self, stages: Vec<Stage>) -> Result<Vec<u8>> {
-        Ok(bincode::serialize(&stages)?)
     }
 
     fn encode_string_to_u128(&self, input: &str) -> u128 {
