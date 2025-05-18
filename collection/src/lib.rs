@@ -89,7 +89,11 @@ enum CollectionMessage {
 
   #[opcode(1002)]
   #[returns(String)]
-  GetInstanceIdentifier { index: u128 }
+  GetInstanceIdentifier { index: u128 },
+
+  #[opcode(1003)]
+  #[returns(u128)]
+  GetStageTotalMinted { stage_id: u128 }
 }
 
 impl Token for Collection {
@@ -198,7 +202,16 @@ impl Collection {
         response.data = instance_str.into_bytes();
         Ok(response)
     }
-  
+    fn get_stage_total_minted(&self, stage_id: u128) -> Result<CallResponse> {
+        let context: alkanes_support::context::Context = self.context()?;
+        let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes);
+
+        let stage: Stage = self.get_mint_stage(stage_id)?;
+
+        response.data = stage.total_minted.to_le_bytes().to_vec();
+
+        Ok(response)
+    }
     /// Mint from a stage
     fn mint_in_stage(&self, stage_id: u128) -> Result<CallResponse> {
         // @todo - determine the minter address from context instead of receiving it as a parameter
@@ -437,6 +450,19 @@ impl Collection {
         
         Ok(stages)
     }
+
+    /// Retrieve a specific stage by ID
+    fn get_mint_stage(&self, stage_id: u128) -> Result<Stage> {
+        let stages: Vec<Stage> = self.get_mint_stages()?;     
+        for stage in stages {
+            if stage.id == stage_id {
+                return Ok(stage);
+            }
+        }
+
+        Err(anyhow!("Stage with ID {} not found", stage_id))
+    }
+
     /// Initialize stages if not already set
     fn initialize_mint_stages(&self) -> Result<()> {
         let stages: Vec<Stage> = self.get_mint_stages()?;
@@ -448,15 +474,10 @@ impl Collection {
                     id: 1,
                     price_per_item: 100,
                     max_mints_per_address: 5,
-                    whitelist: vec![
-                        "tb1pxfgth5u8dpvtwzcfkud87n9sfs56ypymc7gv0r2ydvp64clkdxzsmadr3t".to_string(),
-                        "tb1qnfvg3mxy46m6d5znqpxpy5fvy7nxw3p83ns7cg".to_string(),
-                        "tb1qla5u9e3rz2840rggsjaz54zk8yn48402khann9".to_string(),
-                        "tb1p3azhqgk06m3evczr9fxqxsfg62nahrtdgydh7pvh7nqt9t3cy3ys663xnw".to_string()
-                    ],
-                    max_supply: 100,
-                    start_block: 900000,
-                    end_block: 905000,
+                    whitelist: vec![],
+                    max_supply: 10,
+                    start_block: 1,
+                    end_block: 111905000,
                     total_minted: 0,
                 },
                 Stage {
@@ -464,9 +485,9 @@ impl Collection {
                     price_per_item: 200,
                     max_mints_per_address: 3,
                     whitelist: vec![],
-                    max_supply: 500,
-                    start_block: 905001,
-                    end_block: 910000,
+                    max_supply: 20,
+                    start_block: 1,
+                    end_block: 111905000,
                     total_minted: 0,
                 },
             ];
