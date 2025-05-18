@@ -92,17 +92,9 @@ enum CollectionMessage {
   #[returns(String)]
   GetInstanceIdentifier { index: u128 },
 
-  #[opcode(1003)]
-  #[returns(Vec<Stage>)]
-  GetAllStages,
-
   #[opcode(1004)]
   #[returns(Stage)]
   GetSingleStage { stage_id: u128 },
-
-  #[opcode(1005)]
-  #[returns(bool)]
-  GetAddressWhitelist { stage_id: u128, address: String },
 }
 
 impl Token for Collection {
@@ -226,17 +218,6 @@ impl Collection {
         let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes);
 
         response.data = self.stages_to_bytes(vec![self.get_mint_stage(stage_id)?])?;
-
-        Ok(response)
-    }
-    /// Get address whitelist
-    fn get_address_whitelist(&self, stage_id: u128, address: String) -> Result<CallResponse> {
-        let context: alkanes_support::context::Context = self.context()?;
-        let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes);
-
-        let is_whitelisted: bool = self.is_whitelisted(stage_id, address);
-
-        response.data = vec![is_whitelisted as u8];
 
         Ok(response)
     }
