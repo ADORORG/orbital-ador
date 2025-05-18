@@ -24,9 +24,7 @@ impl AlkaneResponder for OrbitalInstance {}
 enum OrbitalInstanceMessage {
   #[opcode(0)]
   Initialize {
-    index: u128,
-    name: u128,
-    symbol: u128
+    index: u128
   },
 
   #[opcode(99)]
@@ -64,12 +62,12 @@ enum OrbitalInstanceMessage {
 
 impl Token for OrbitalInstance {
   fn name(&self) -> String {
-    let name: String = self.get_name_from_pointer().unwrap();
+    let name: String = "ADORs".to_string();
     format!("{} #{}", name, self.index())
   }
 
   fn symbol(&self) -> String {
-    let symbol: String = self.get_symbol_from_pointer().unwrap();
+    let symbol: String = "ADR".to_string();
     format!("{} #{}", symbol, self.index())
   }
 }
@@ -77,7 +75,7 @@ impl Token for OrbitalInstance {
 impl OrbitalInstance {
   /// Initialize the NFT instance with a given index
   /// Opcode: 0
-  fn initialize(&self, index: u128, name: u128, symbol: u128) -> Result<CallResponse> {
+  fn initialize(&self, index: u128) -> Result<CallResponse> {
     let context = self.context()?;
     let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes);
 
@@ -85,8 +83,8 @@ impl OrbitalInstance {
 
     self.set_collection_alkane_id(&context.caller);
     self.set_index(index);
-    let _ = self.save_name_to_pointer(self.decode_u128_to_string(name));
-    let _ = self.save_symbol_to_pointer(self.decode_u128_to_string(symbol));
+    // let _ = self.save_name_to_pointer(self.decode_u128_to_string(name));
+    // let _ = self.save_symbol_to_pointer(self.decode_u128_to_string(symbol));
 
     response.alkanes.0.push(AlkaneTransfer {
       id: context.myself.clone(),
@@ -102,7 +100,7 @@ impl OrbitalInstance {
     let context: alkanes_support::context::Context = self.context()?;
     let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes);
 
-    response.data = (self.get_name_from_pointer()?).into_bytes().to_vec();
+    response.data = (self.name()).into_bytes().to_vec();
 
     Ok(response)
   }
@@ -113,7 +111,7 @@ impl OrbitalInstance {
     let context: alkanes_support::context::Context = self.context()?;
     let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes);
 
-    response.data = (self.get_name_from_pointer()?).into_bytes().to_vec();
+    response.data = (self.symbol()).into_bytes().to_vec();
 
     Ok(response)
   }
@@ -254,122 +252,6 @@ impl OrbitalInstance {
   fn set_index(&self, index: u128) {
     self.index_pointer().set_value::<u128>(index);
   }
-
-  /// Name storage pointer
-  fn name_pointer(&self) -> StoragePointer {
-    StoragePointer::from_keyword("/token_name")
-  }
-  /// Save name as u128 chunks in pointer storage
-  fn save_name_to_pointer(&self, name: String) -> Result<()> {
-      let serialized: Vec<u8> = self.serialize_string(name)?;
-      let chunks: Vec<u128> = self.to_u128_chunks(&serialized);
-
-      // Save each chunk at a sequential pointer
-      for (i, chunk) in chunks.iter().enumerate() {
-          self.name_pointer().select(&i.to_le_bytes().to_vec()).set_value(*chunk);
-      }
-
-      Ok(())
-  }
-
-  /// Read name from pointer storage
-  fn get_name_from_pointer(&self) -> Result<String> {
-      let mut serialized: Vec<u8> = Vec::new();
-      let mut i: i32 = 0;
-
-      loop {
-          let pointer: StoragePointer = self.name_pointer().select(&i.to_le_bytes().to_vec());
-          let chunk: u128 = pointer.get_value();
-          
-          // If we hit an empty chunk (0), we stop
-          if chunk == 0 {
-              break;
-          }
-
-          // Convert u128 back to 16 bytes
-          serialized.extend_from_slice(&chunk.to_le_bytes());
-          i += 1;
-      }
-
-      self.deserialize_string(serialized)
-  }
-
-  /// Symbol storage pointer
-  fn symbol_pointer(&self) -> StoragePointer {
-      StoragePointer::from_keyword("/token_symbol")
-  }
-
-  /// Save symbol as u128 chunks in pointer storage
-  fn save_symbol_to_pointer(&self, symbol: String) -> Result<()> {
-      let serialized: Vec<u8> = self.serialize_string(symbol)?;
-      let chunks: Vec<u128> = self.to_u128_chunks(&serialized);
-
-      // Save each chunk at a sequential pointer
-      for (i, chunk) in chunks.iter().enumerate() {
-          self.symbol_pointer().select(&i.to_le_bytes().to_vec()).set_value(*chunk);
-      }
-
-      Ok(())
-
-  }
-
-  /// Read symbol from pointer storage
-  fn get_symbol_from_pointer(&self) -> Result<String> {
-      let mut serialized: Vec<u8> = Vec::new();
-      let mut i: i32 = 0;
-
-      loop {
-          let pointer: StoragePointer = self.symbol_pointer().select(&i.to_le_bytes().to_vec());
-          let chunk: u128 = pointer.get_value();
-          
-          // If we hit an empty chunk (0), we stop
-          if chunk == 0 {
-              break;
-          }
-
-          // Convert u128 back to 16 bytes
-          serialized.extend_from_slice(&chunk.to_le_bytes());
-          i += 1;
-      }
-
-      self.deserialize_string(serialized)
-  }
-
-
-  /// Convert Vec<u8> to u128 chunks
-  fn to_u128_chunks(&self, data: &[u8]) -> Vec<u128> {
-      data.chunks(16)
-          .map(|chunk| {
-              let mut padded = [0u8; 16];
-              padded[..chunk.len()].copy_from_slice(chunk);
-              u128::from_le_bytes(padded)
-          })
-          .collect()
-  }
-
-  /// Serialize String to Vec<u8>
-  fn serialize_string(&self, val: String) -> Result<Vec<u8>> {
-      Ok(bincode::serialize(&val)?)
-  }
-
-  /// Deserialize Vec<u8> to String
-  fn deserialize_string(&self, val: Vec<u8>) -> Result<String> {
-      Ok(bincode::deserialize(&val[..])?)
-  }
-
-  /// Converts a u128 to a string
-  fn decode_u128_to_string(&self, encoded: u128) -> String {
-    let mut result: String = String::new();
-    for i in 0..16 {
-        let byte = ((encoded >> (8 * i)) & 0xFF) as u8;
-        if byte == 0 {
-            break;
-        }
-        result.push(byte as char);
-    }
-    result
-  }
-
 }
 
 declare_alkane! {

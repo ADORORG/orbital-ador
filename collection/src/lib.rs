@@ -293,9 +293,7 @@ impl Collection {
 
         let inputs: Vec<u128> = vec![
             0x0, 
-            index, 
-            self.encode_string_to_u128(CONTRACT_NAME),
-            self.encode_string_to_u128(CONTRACT_SYMBOL)
+            index
         ];
 
         let cellpack: Cellpack = Cellpack {
@@ -519,14 +517,6 @@ impl Collection {
         }
 
         Ok(())
-    }
-
-    fn encode_string_to_u128(&self, input: &str) -> u128 {
-        let mut value: u128 = 0;
-        for (i, byte) in input.bytes().enumerate() {
-            value |= (byte as u128) << (8 * i);
-        }
-        value
     }
 
 }
