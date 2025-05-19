@@ -4,9 +4,9 @@
 This repository contain Alkane factory contract for minting digital artefact.   
 
 ## Features
-- No hardcoded NFT name or symbol
-- Name and symbol are passed to the `initialize' function.
-- Deloy once and clone forever!
+- No hard-coded NFT name or symbol
+- Name and symbol are passed to the `initialize` function.
+- Deploy once and clone forever!
 
 ## License
 
