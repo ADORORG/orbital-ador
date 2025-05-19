@@ -53,9 +53,6 @@ enum CollectionMessage {
   #[opcode(0)]
   Initialize,
 
-  #[opcode(69)]
-  AuthMintOrbital { count: u128 },
-
   #[opcode(77)]
   MintInStage { stage_id: u128 },
 
@@ -242,39 +239,6 @@ impl Collection {
 
     }
 
-    fn auth_mint_orbital(&self, count: u128) -> Result<CallResponse> {
-        let context: alkanes_support::context::Context = self.context()?;
-        let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes);
-
-        // Authorized mints
-        self.only_owner()?;
-
-        // Check if PREMINE_MINTS is greater than 0
-        if PREMINE_MINTS == 0 {
-            return Err(anyhow!("Premine minting is not enabled (PREMINE_MINTS is 0)"));
-        }
-
-        // Check if the requested mint count plus current auth mint count doesn't exceed PREMINE_MINTS
-        let current_auth_mints: u128 = self.get_auth_mint_count();
-        if current_auth_mints + count > PREMINE_MINTS {
-            return Err(anyhow!("Requested mint count {} plus current auth mints {} would exceed premine limit of {}", 
-                count, current_auth_mints, PREMINE_MINTS));
-        }
-
-        let mut minted_orbitals: Vec<AlkaneTransfer> = Vec::new();
-
-        for _ in 0..count {
-            minted_orbitals.push(self.create_mint_transfer()?);
-        }
-
-        // Update the auth mint count
-        self.set_auth_mint_count(current_auth_mints + count);
-
-        response.alkanes.0.extend(minted_orbitals);
-
-        Ok(response)
-    }
-
     fn mint_orbital(&self) -> Result<CallResponse> {
         let context: alkanes_support::context::Context = self.context()?;
         let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes);
@@ -410,19 +374,6 @@ impl Collection {
 
         Ok(AlkaneId { block, tx })
     }
-
-    /// Get storage pointer for authorized mint count
-    fn get_auth_mint_count_pointer(&self) -> StoragePointer {
-        StoragePointer::from_keyword("/auth_mint_count")
-    }
-    /// Get authorized mint count
-    fn get_auth_mint_count(&self) -> u128 {
-        self.get_auth_mint_count_pointer().get_value()
-    }
-    /// Set authorized mint count
-    fn set_auth_mint_count(&self, count: u128) {
-        self.get_auth_mint_count_pointer().set_value(count);
-    }
     /// Storage pointer for stages
     fn mint_stages_pointer(&self) -> StoragePointer {
         StoragePointer::from_keyword("/stages")
@@ -493,29 +444,6 @@ impl Collection {
             ];
 
             self.set_mint_stages(initial_stages)?;
-        }
-
-        Ok(())
-    }
-
-    fn only_owner(&self) -> Result<()> {
-        let context: alkanes_support::context::Context = self.context()?;
-
-        if context.incoming_alkanes.0.len() != 1 {
-            return Err(anyhow!(
-                "did not authenticate with only the collection token"
-            ));
-        }
-
-        let transfer: AlkaneTransfer = context.incoming_alkanes.0[0].clone();
-        if transfer.id != context.myself.clone() {
-            return Err(anyhow!("supplied alkane is not collection token"));
-        }
-
-        if transfer.value < 1 {
-            return Err(anyhow!(
-                "less than 1 unit of collection token supplied to authenticate"
-            ));
         }
 
         Ok(())
