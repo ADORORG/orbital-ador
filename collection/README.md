@@ -1,7 +1,3 @@
-# Orbital Ador Collection
-
-Welcome to the **Orbital Ador Collection** repository!
-
 ## Overview
 
 This repository contain Alkane contract for minting digital artefacts and is a work in progress. 

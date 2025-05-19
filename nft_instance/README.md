@@ -1,6 +1,3 @@
-# Orbital Ador Collection
-
-Welcome to the **Orbital Ador NFT Instance** repository!
 
 ## Overview
 
