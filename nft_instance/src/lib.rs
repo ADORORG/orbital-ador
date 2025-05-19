@@ -113,7 +113,7 @@ impl OrbitalInstance {
     let context: alkanes_support::context::Context = self.context()?;
     let mut response: CallResponse = CallResponse::forward(&context.incoming_alkanes);
 
-    response.data = (self.get_name_from_pointer()?).into_bytes().to_vec();
+    response.data = (self.get_symbol_from_pointer()?).into_bytes().to_vec();
 
     Ok(response)
   }

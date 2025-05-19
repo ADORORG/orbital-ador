@@ -18,7 +18,7 @@ mod svg_generator;
 use svg_generator::SvgGenerator;
 
 /// Template ID for orbital NFT
-const ORBITAL_INSTANCE_ID: u128 = 0x41a2;
+const ORBITAL_INSTANCE_ID: u128 = 0x69f;
 
 /// Name of the NFT collection
 const CONTRACT_NAME: &str = "Ador Alkane";
